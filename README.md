@@ -31,7 +31,7 @@ Objectify-remotely includes two pieces:
 		<dependency>
 			<groupId>com.googlecode.objectify</groupId>
 			<artifactId>objectify-remotely</artifactId>
-			<version>check for latest version</version>
+			<version>${objectify-remotely.version}</version>
 		</dependency>
 	</dependencies>
 ```
@@ -68,8 +68,8 @@ If you are using Objectify, subclass `ObjectifyFactory` and override this method
 ### Execute work remotely
 
 ```java
-	String foo = Remotely.execute(new RemoteWork<String>() {
-		public String run() {
+	String foo = Remotely.execute(new Callable<String>() {
+		public String call() {
 			ofy().load()... etc, do some datastore work
 			return "some string value";
 		}
@@ -79,8 +79,8 @@ If you are using Objectify, subclass `ObjectifyFactory` and override this method
 or for void work:
 
 ```java
-	Remotely.execute(new VoidRemoteWork() {
-		public void vrun() {
+	Remotely.execute(new VoidCallable() {
+		public void run() {
 			ofy().load()... etc, do some datastore work
 		}
 	});
