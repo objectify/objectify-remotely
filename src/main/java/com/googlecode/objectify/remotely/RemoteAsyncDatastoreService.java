@@ -2,6 +2,7 @@ package com.googlecode.objectify.remotely;
 
 import com.google.appengine.api.datastore.AsyncDatastoreService;
 import com.google.appengine.tools.remoteapi.RemoteApiInstaller;
+import lombok.extern.java.Log;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -9,6 +10,7 @@ import java.util.concurrent.Future;
 
 /**
  */
+@Log
 public class RemoteAsyncDatastoreService implements InvocationHandler {
 
 	/** */
@@ -20,9 +22,6 @@ public class RemoteAsyncDatastoreService implements InvocationHandler {
 	}
 
 	/** */
-	private static final RemoteApiInstaller INSTALLER = new RemoteApiInstaller();
-
-	/** */
 	private final AsyncDatastoreService raw;
 
 	private RemoteAsyncDatastoreService(AsyncDatastoreService raw) {
@@ -32,8 +31,9 @@ public class RemoteAsyncDatastoreService implements InvocationHandler {
 	@Override
 	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 		if (Remotely.isEnabled()) {
+			RemoteApiInstaller installer = new RemoteApiInstaller();
+			installer.install(Remotely.getOptions());
 			try {
-				INSTALLER.install(Remotely.getOptions());
 				Object result = method.invoke(raw, args);
 
 				// It is almost certainly the case that Future objects need to be materialized
@@ -43,7 +43,7 @@ public class RemoteAsyncDatastoreService implements InvocationHandler {
 
 				return result;
 			} finally {
-				INSTALLER.uninstall();
+				installer.uninstall();
 			}
 		} else {
 			return method.invoke(raw, args);

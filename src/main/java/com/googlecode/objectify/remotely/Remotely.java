@@ -2,6 +2,7 @@ package com.googlecode.objectify.remotely;
 
 
 import com.google.appengine.tools.remoteapi.RemoteApiOptions;
+import java.util.concurrent.Callable;
 
 /**
  *
@@ -38,7 +39,7 @@ public class Remotely
 	/**
 	 * Execute the work against a remote datastore.
 	 */
-	public <R> R execute(RemoteWork<R> work) {
+	public static <R> R execute(Callable<R> work) {
 		if (options == null)
 			throw new IllegalStateException("You must set options first");
 
@@ -46,7 +47,11 @@ public class Remotely
 		ENABLED.set(true);
 
 		try {
-			return work.run();
+			return work.call();
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
 		} finally {
 			ENABLED.set(prior);
 		}
