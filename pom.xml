@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<properties>
-		<gae.version>1.9.15</gae.version>
+		<gae.version>1.9.17a</gae.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 

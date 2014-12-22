@@ -19,16 +19,14 @@ public class Remotely
 	};
 
 	/** */
-	private static RemoteApiOptions options;
+	static Remoter remoter;
 
 	/** */
 	public static void setOptions(RemoteApiOptions value) {
-		options = value;
-	}
+		if (remoter != null)
+			throw new IllegalStateException("You can only set it once");
 
-	/** */
-	public static RemoteApiOptions getOptions() {
-		return options;
+		remoter = new Remoter(value);
 	}
 
 	/** @return true if we should use the remote api right now */
@@ -40,7 +38,7 @@ public class Remotely
 	 * Execute the work against a remote datastore.
 	 */
 	public static <R> R execute(Callable<R> work) {
-		if (options == null)
+		if (remoter == null)
 			throw new IllegalStateException("You must set options first");
 
 		boolean prior = ENABLED.get();
