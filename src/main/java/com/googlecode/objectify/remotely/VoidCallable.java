@@ -12,10 +12,10 @@ import java.util.concurrent.Callable;
 abstract public class VoidCallable implements Callable<Void>
 {
 	@Override
-	public final Void call() {
+	public final Void call() throws Exception {
 		run();
 		return null;
 	}
 	
-	public abstract void run();
+	public abstract void run() throws Exception;
 }
