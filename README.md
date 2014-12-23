@@ -1,8 +1,8 @@
 # Use A Remote App Engine Datastore
 
-This library allows your GAE/Java application to execute datastore operations against a remote service. The remote
-datastore could be another GAE application, an AppScale application, or anything else that implements the GAE remote
-API.
+This library allows your GAE/Java application to selectively execute datastore operations against a remote service.
+At the moment this only works against Appscale applications or other remote API service providers which return keys
+that match the appid of the calling application.
 
 Despite the name, this library does not depend on Objectify in any way. It is, however, convenient to use with
 Objectify.
@@ -16,11 +16,6 @@ https://github.com/stickfigure/objectify-remotely
 When you install the remote API, all GAE service calls go to the remote server. Objectify-remotely limits this
 to only datastore operations; used in conjunction with Objectify (or other tools), your application can continue
 to use local memcache and other services while shunting only datastore operations to the remote service.
-
-Objectify-remotely includes two pieces:
-
-1. An executor that lets you execute a unit-of-work in a remote context
-2. A wrapper for AsyncDatastoreService that works in concert with the executor
 
 ## Usage
 
@@ -36,13 +31,32 @@ Objectify-remotely includes two pieces:
 	</dependencies>
 ```
 
-### Use the RemoteAsyncDatastoreService
+### Create the Remotely
 
-If you are using the low level API directly, simply wrap your AsyncDatastoreService:
+You will need to implement the callback that Remotely will use to determine whether calls should be made remotely.
+
+```java
+	RemoteApiOptions options = new RemoteApiOptions()
+			.server("remote.example.com", 443)
+			.credentials("user", "password");
+
+	RemoteCheck check = new RemoteCheck() {
+		public boolean isRemote(String namespace) {
+			return namespace.equals("remotestuffnamespace");
+		}
+	};
+
+	Remotely remotely = new Remotely(options, check);
+```
+
+If you are using the low level API directly, wrap your `AsyncDatastoreService`. Note that each instance of
+the `AsyncDatastoreService` is permanently either remote or not; you should create and intercept new `AsyncDatastoreService`
+instances for every action.
 
 ```java
 	AsyncDatastoreService raw = DatastoreServiceFactory.getAsyncDatastoreService();
-	AsyncDatastoreService myService = RemoteAsyncDatastoreService.create(raw);
+	AsyncDatastoreService myService = remotely.intercept(raw);
+	// myService will be a remote service or a local service depending on the check
 ```
 
 If you are using Objectify, subclass `ObjectifyFactory` and override this method:
@@ -51,39 +65,8 @@ If you are using Objectify, subclass `ObjectifyFactory` and override this method
 	@Override
 	protected AsyncDatastoreService createRawAsyncDatastoreService(DatastoreServiceConfig cfg) {
 		AsyncDatastoreService raw = super.createRawAsyncDatastoreService(cfg);
-		return RemoteAsyncDatastoreService.create(raw);
+		return remotely.intercept(raw);
 	}
-```
-
-### Configure the remote service
-
-```java
-	RemoteApiOptions options = new RemoteApiOptions()
-    	.server("remote.example.com", 443)
-    	.credentials(username, password);
-
-    Remotely.setOptions(options);
-```
-
-### Execute work remotely
-
-```java
-	String foo = Remotely.execute(new Callable<String>() {
-		public String call() {
-			ofy().load()... etc, do some datastore work
-			return "some string value";
-		}
-	});
-```
-
-or for void work:
-
-```java
-	Remotely.execute(new VoidCallable() {
-		public void run() {
-			ofy().load()... etc, do some datastore work
-		}
-	});
 ```
 
 ## More

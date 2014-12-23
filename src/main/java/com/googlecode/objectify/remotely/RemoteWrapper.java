@@ -23,7 +23,7 @@ import java.util.concurrent.Future;
 public class RemoteWrapper implements InvocationHandler {
 
 	/** */
-	public static Object create(Object raw) {
+	public static Object create(Object raw, Remoter remoter) {
 		return Proxy.newProxyInstance(
 				AsyncDatastoreService.class.getClassLoader(),
 				new Class[] {
@@ -35,36 +35,33 @@ public class RemoteWrapper implements InvocationHandler {
 						PreparedQuery.class,
 						AsyncDatastoreService.class
 				},
-				new RemoteWrapper(raw));
+				new RemoteWrapper(raw, remoter));
 	}
 
 	/** */
 	private final Object raw;
+	private final Remoter remoter;
 
 	@Override
 	public Object invoke(Object proxy, final Method method, final Object[] args) throws Throwable {
-		if (Remotely.isEnabled()) {
-			return Remotely.remoter.execute(new Callable<Object>() {
-				@Override
-				public Object call() throws Exception {
-					Object result = method.invoke(raw, args);
+		return remoter.execute(new Callable<Object>() {
+			@Override
+			public Object call() throws Exception {
+				Object result = method.invoke(raw, args);
 
-					// It is almost certainly the case that Future objects need to be materialized
-					// before the remote api is uninstalled. If not, we can comment out this behavior.
-					if (result instanceof Future<?>) {
-						return new Now<Object>(((Future<?>)result).get());
-					}
-					else if (result instanceof PreparedQuery
-							|| result instanceof Iterable<?>
-							|| result instanceof Iterator<?>) {
-						return RemoteWrapper.create(result);
-					} else {
-						return result;
-					}
+				// It is almost certainly the case that Future objects need to be materialized
+				// before the remote api is uninstalled. If not, we can comment out this behavior.
+				if (result instanceof Future<?>) {
+					return new Now<Object>(((Future<?>)result).get());
 				}
-			});
-		} else {
-			return method.invoke(raw, args);
-		}
+				else if (result instanceof PreparedQuery
+						|| result instanceof Iterable<?>
+						|| result instanceof Iterator<?>) {
+					return RemoteWrapper.create(result, remoter);
+				} else {
+					return result;
+				}
+			}
+		});
 	}
 }
